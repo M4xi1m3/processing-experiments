@@ -142,7 +142,7 @@ public class Point implements Comparable<Point> {
      */
     @Override
     public int compareTo(Point p) {
-        return (int) (this.x - p.x);
+        return (this.x < p.x) ? -1 : (this.x > p.x) ? 1 : 0;
     }
     
     /**
@@ -299,7 +299,7 @@ void setup() {
     size(800, 800);
     
     done = false;
-    points = generatePoints(50, new RandomPointGenerator(10, 790));
+    points = generatePoints(100, new RandomPointGenerator(10, 790));
 
     Collections.sort(points);
     
@@ -308,8 +308,6 @@ void setup() {
     
     p = points.get(0);
     p2 = null;
-    
-    // mouseClicked();
 }
 
 /**
