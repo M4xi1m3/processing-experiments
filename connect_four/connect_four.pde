@@ -186,6 +186,7 @@ class SelectArrow {
                 
                 if (board.checkWin(this.position, y)) {
                     println("GGWP!");
+                    game.sm.swap(new Game());
                 }
                 
                 game.switchPlayer();
@@ -223,9 +224,54 @@ class Player {
     }
 }
 
-class Game {
+interface Scene {
+    void init(SceneManager sm);
+    void deinit(SceneManager sm);
+    void draw();
+    void mouseMoved(int x, int y);
+    void mouseClicked(int x, int y);
+}
+
+class SceneManager {
+    Scene current = null;
+
+    SceneManager(Scene first) {
+        current = first;
+        current.init(this);
+    }
+    
+    void swap(Scene newScene) {
+        if (current != null) {
+            current.deinit(this);
+        }
+        
+        current = newScene;
+        current.init(this);
+    }
+    
+    void draw() {
+        if (current != null) {
+            current.draw();
+        }
+    }
+    
+    void mouseMoved(int x, int y) {
+        if (current != null) {
+            current.mouseMoved(x, y);
+        }
+    }
+    
+    void mouseClicked(int x, int y) {
+        if (current != null) {
+            current.mouseClicked(x, y);
+        }
+    }
+}
+
+class Game implements Scene {
     Board board;
     SelectArrow arrow;
+    SceneManager sm;
 
     Player p1;
     Player p2;
@@ -244,7 +290,9 @@ class Game {
         }
     }
     
-    void setup() {
+    @Override
+    void init(SceneManager sm) {
+        this.sm = sm;
         board = new Board();
         arrow = new SelectArrow(board);
         p1 = new Player(Color.CHIP1, "Rouge");
@@ -254,6 +302,12 @@ class Game {
         noStroke();
     }
     
+    @Override
+    void deinit(SceneManager sm) {
+        
+    }
+    
+    @Override
     void draw() {
         background(Color.BACKGROUND.getColor());
 
@@ -261,37 +315,38 @@ class Game {
         arrow.draw();
     }
     
-    void mouseMoved(int mouseX) {
-        arrow.mouseMoved(mouseX);
+    @Override
+    void mouseMoved(int x, int y) {
+        arrow.mouseMoved(x);
     }
     
-    void mouseClicked(int mouseX) {
-        arrow.mouseClicked(mouseX, this);
+    @Override
+    void mouseClicked(int x, int y) {
+        arrow.mouseClicked(y, this);
     }
 }
 
 
 // Processing-specific stuff, pass events to the Game class.
+SceneManager sm;
 Game g;
 
 void setup() {
-    g = new Game();
-    
     size(800, 600);
     surface.setSize(Constants.SCREEN_WIDTH, Constants.SCREEN_HEIGHT);
     
-    g.setup();
+    sm = new SceneManager(new Game());
 }
 
 void draw() {
-    g.draw();
+    sm.draw();
 }
 
 void mouseMoved() {
-    g.mouseMoved(mouseX);
+    sm.mouseMoved(mouseX, mouseY);
 }
 
 void mouseClicked() {
-    g.mouseClicked(mouseX);
+    sm.mouseClicked(mouseX, mouseY);
 }
 
