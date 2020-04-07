@@ -27,6 +27,13 @@ class Constants {
 
 enum Color {
     BACKGROUND(0xFF000000),
+    TEXT(0xFFFFFFFF),
+    
+    BUTTON_BG(0xFF444444),
+    BUTTON_FG(0xFFFFFFFF),
+    BUTTON_HOVER_BG(0xFFFFFFFF),
+    BUTTON_HOVER_FG(0xFF444444),
+    
     ARROW(0xFFFFFFFF),
     BOARD(0xFF0000FF),
     CHIP1(0xFFFF0000),
@@ -185,8 +192,7 @@ class SelectArrow {
                 board.chips_list[this.position][y] = new Chip(this.position, y, game.current);
                 
                 if (board.checkWin(this.position, y)) {
-                    println("GGWP!");
-                    game.sm.swap(new Game());
+                    game.sm.swap(new MainMenu("GGWP " + game.current.name + "!"));
                 }
                 
                 game.switchPlayer();
@@ -326,16 +332,74 @@ class Game implements Scene {
     }
 }
 
+class MainMenu implements Scene {
+    SceneManager sm;
+    boolean hover_play = false;
+    String message = "";
+    
+    MainMenu(String message) {
+        this.message = message;
+    }
+    
+    MainMenu() {
+        
+    }
+    
+    @Override
+    void init(SceneManager sm) {
+        this.sm = sm;
+    }
+    
+    @Override
+    void deinit(SceneManager sm) {
+        
+    }
+    
+    @Override
+    void draw() {
+        background(0);
+        textSize(32);
+        textAlign(CENTER);
+        fill(Color.TEXT.getColor());
+        text("Puissance Quatre", Constants.SCREEN_WIDTH/2, 50);
+        text(message, Constants.SCREEN_WIDTH/2, 100);
+        
+        
+        if (hover_play) {
+            fill(Color.BUTTON_HOVER_BG.getColor());
+            rect(Constants.SCREEN_WIDTH/2 - 50, Constants.SCREEN_HEIGHT/2 - 20, 100, 40);
+            fill(Color.BUTTON_HOVER_FG.getColor());
+            text("Play", Constants.SCREEN_WIDTH/2, Constants.SCREEN_HEIGHT/2 + 10);
+        } else {
+            fill(Color.BUTTON_BG.getColor());
+            rect(Constants.SCREEN_WIDTH/2 - 50, Constants.SCREEN_HEIGHT/2 - 20, 100, 40);
+            fill(Color.BUTTON_FG.getColor());
+            text("Play", Constants.SCREEN_WIDTH/2, Constants.SCREEN_HEIGHT/2 + 10);
+        }
+    }
+    
+    @Override
+    void mouseMoved(int x, int y) {
+        hover_play = x >= Constants.SCREEN_WIDTH/2 - 50  && x <= Constants.SCREEN_WIDTH/2 + 50 &&
+                     y >= Constants.SCREEN_HEIGHT/2 - 20 && y <= Constants.SCREEN_HEIGHT/2 + 20;
+    }
+    
+    @Override
+    void mouseClicked(int x, int y) {
+        if (hover_play) {
+            sm.swap(new Game());
+        }
+    }
+}
 
 // Processing-specific stuff, pass events to the Game class.
 SceneManager sm;
-Game g;
 
 void setup() {
     size(800, 600);
     surface.setSize(Constants.SCREEN_WIDTH, Constants.SCREEN_HEIGHT);
     
-    sm = new SceneManager(new Game());
+    sm = new SceneManager(new MainMenu());
 }
 
 void draw() {
