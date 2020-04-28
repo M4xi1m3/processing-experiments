@@ -321,6 +321,57 @@ interface IPlayer {
 }
 
 /**
+ * Player, but plays randomly.
+ */
+class RandomPlayer implements IPlayer {
+    Color chip_color;
+    String name;
+    
+    @Override
+    void draw() {
+        
+    }
+    
+    @Override
+    int play(Board current_board) {
+        while(!current_board.isFull()) {
+            int number = (int) random(0, Constants.BOARD_WIDTH);
+            if (current_board.getAvaliableSpace(number) != 0) {
+                return number;
+            }
+        }
+        
+        return -1;
+    }
+    
+    @Override
+    void init(Color chip_color, String name) {
+        this.chip_color = chip_color;
+        this.name = name;
+    }
+    
+    @Override
+    Color getColor() {
+        return this.chip_color;
+    }
+    
+    @Override
+    String getName() {
+        return this.name;
+    }
+    
+    @Override
+    void mouseMoved(int mouseX, int mouseY, Game game) {
+        
+    }
+    
+    @Override
+    void mouseClicked(int mouseX, int mouseY, Game game) {
+        
+    }
+}
+
+/**
  * Player, but human.
  */
 class HumanPlayer implements IPlayer {
@@ -503,7 +554,7 @@ class Game implements IScene {
     int last_mouse_x = 0, last_mouse_y = 0;
 
     HumanPlayer p1;
-    HumanPlayer p2;
+    RandomPlayer p2;
 
     IPlayer current;
     
@@ -525,7 +576,7 @@ class Game implements IScene {
         board = new Board();
         p1 = new HumanPlayer();
         p1.init(Color.CHIP1, "Red");
-        p2 = new HumanPlayer();
+        p2 = new RandomPlayer();
         p2.init(Color.CHIP2, "Yellow");
         current = p1;
         
