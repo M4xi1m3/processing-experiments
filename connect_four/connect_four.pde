@@ -89,6 +89,23 @@ class Board {
     }
     
     /**
+     * Checks if the board is full
+     *
+     * @return      Wether or not the board is full.
+     */
+    boolean isFull() {
+        for(int i = 0; i < chips_list.length; i++) {
+            for(int j = 0; j < chips_list[i].length; j++) {
+                if (chips_list[i][j] == null) {
+                    return false;
+                }
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
      * Get the vertical space avalible a position x
      *
      * @param   x       The horizontal position to get avaliable space from
@@ -507,9 +524,9 @@ class Game implements IScene {
         this.sm = sm;
         board = new Board();
         p1 = new HumanPlayer();
-        p1.init(Color.CHIP1, "Rouge");
+        p1.init(Color.CHIP1, "Red");
         p2 = new HumanPlayer();
-        p2.init(Color.CHIP2, "Jaune");
+        p2.init(Color.CHIP2, "Yellow");
         current = p1;
         
         noStroke();
@@ -527,6 +544,10 @@ class Game implements IScene {
         board.draw();
         current.draw();
         
+        textAlign(CENTER);
+        fill(Color.TEXT.getColor());
+        text(current.getName() + " is playing...", Constants.SCREEN_WIDTH/2, 50);
+        
         int move = current.play(this.board);
         
         if (move != -1) {
@@ -543,6 +564,10 @@ class Game implements IScene {
                 switchPlayer();
                 current.mouseMoved(this.last_mouse_x, this.last_mouse_y, this);
             }
+        }
+        
+        if (board.isFull()) {
+            this.sm.swap(new MainMenu("EQUALITY!11!1!"));
         }
     }
     
@@ -591,7 +616,7 @@ class MainMenu implements IScene {
         textSize(32);
         textAlign(CENTER);
         fill(Color.TEXT.getColor());
-        text("Puissance Quatre", Constants.SCREEN_WIDTH/2, 50);
+        text("Connect four", Constants.SCREEN_WIDTH/2, 50);
         text(message, Constants.SCREEN_WIDTH/2, 100);
         
         
