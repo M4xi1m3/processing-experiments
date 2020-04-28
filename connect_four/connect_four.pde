@@ -101,7 +101,7 @@ class Board {
             
             int available;
             for(available = 0; available < arr.length && arr[available] == null; available++);
-            return available - 1;
+            return available;
         } else {
             return 0;
         }
@@ -160,7 +160,7 @@ class Board {
      *
      * @return      Wether or not there is a win.
      */
-    boolean checkWin(int x, int y, int dx, int dy, int count, Player owner) {
+    boolean checkWin(int x, int y, int dx, int dy, int count, IPlayer owner) {
         if (x < 0 || x >= chips_list.length) {
             return false;
         } else {
@@ -213,79 +213,11 @@ class Board {
 }
 
 /**
- * Represents the select arrow overing over the board.
- */
-class SelectArrow {
-    int position;
-    boolean display;
-    Board board;
-    
-    /**
-     * Init the arrow.
-     *
-     * @param   board       The board.
-     */
-    SelectArrow(Board board) {
-        this.position = 1;
-        this.display = true;
-        this.board = board;
-    }
-    
-    /**
-     * Draws the arrow
-     */
-    void draw() {
-        if (this.display) {
-            fill(Color.ARROW.getColor());
-            int x = Constants.BOARD_MARGIN_X + (Constants.CHIP_SIZE + Constants.CHIP_SPACING) * position + Constants.CHIP_SPACING;
-            triangle(x, Constants.BOARD_MARGIN_Y - 22, x + Constants.CHIP_SIZE, Constants.BOARD_MARGIN_Y - 22, x + Constants.CHIP_SIZE / 2, Constants.BOARD_MARGIN_Y - 2);
-        }
-    }
-    
-    /**
-     * Method called when the mouse if moved.
-     *
-     * @param   mouseX      X position of the mouse.
-     */
-    void mouseMoved(int mouseX) {
-        if (mouseX > Constants.BOARD_MARGIN_X && mouseX < Constants.BOARD_PIX_WIDTH + Constants.BOARD_MARGIN_X - Constants.CHIP_SPACING) {
-            this.display = true;
-            
-            this.position = (int) (mouseX - Constants.BOARD_MARGIN_X) / (Constants.CHIP_SIZE + Constants.CHIP_SPACING);
-        } else {
-            this.display = false;
-        }
-    }
-    
-    /**
-     * Method called when the mouse is clicked.
-     *
-     * @param   mouseX      X position of the mouse.
-     * @param   game        Game object.
-     */
-    void mouseClicked(int mouseX, Game game) {
-        if (this.display) {
-            int y = board.getAvaliableSpace(this.position);
-            
-            if (y != -1) {
-                board.chips_list[this.position][y] = new Chip(this.position, y, game.current);
-                
-                if (board.checkWin(this.position, y)) {
-                    game.sm.swap(new MainMenu("GGWP " + game.current.name + "!"));
-                }
-                
-                game.switchPlayer();
-            }
-        }
-    }
-}
-
-/**
  * Represent a chip.
  */
 class Chip {
     int x, y;
-    Player owner;
+    IPlayer owner;
 
     /**
      * Inits the chip.
@@ -294,7 +226,7 @@ class Chip {
      * @param   y       Y position
      * @param   owner   Owner of the chip
      */
-    Chip(int x, int y, Player owner) {
+    Chip(int x, int y, IPlayer owner) {
         this.x = x;
         this.y = y;
         this.owner = owner;
@@ -307,34 +239,143 @@ class Chip {
         int i = Constants.BOARD_MARGIN_X + (Constants.CHIP_SIZE + Constants.CHIP_SPACING) * (this.x + 1) - Constants.CHIP_SIZE/2;
         int j = Constants.BOARD_MARGIN_Y + (Constants.CHIP_SIZE + Constants.CHIP_SPACING) * (this.y + 1) - Constants.CHIP_SIZE/2;
     
-        fill(owner.chip_color.getColor());
+        fill(owner.getColor().getColor());
         circle(i, j, Constants.CHIP_SIZE);
     }
 }
 
 /**
- * Represents a player
+ * Represents a player. Can be either human or IA (or network...?)
  */
-class Player {
-    Color chip_color;
-    String name;
+interface IPlayer {
+    /**
+     * Draw. This is meant for human player, showing a selector on screen.
+     */
+    void draw();
+    
+    /**
+     * Make the player play.
+     *
+     * @param   current_board   Current state of the board
+     *
+     * @return      X position of the move to play. -1 if not yet decided.
+     */
+    int play(Board current_board);
     
     /**
      * Init the player.
      *
-     * @param   chip_color  Color of the player
-     * @param   name        Name of the player
+     * @param   chip_color      Color of the player
+     * @param   name            Name of the player
      */
-    Player(Color chip_color, String name) {
+    void init(Color chip_color, String name);
+    
+    /**
+     * Gets the player's color
+     *
+     * @return      The color of the player
+     */
+    Color getColor();
+    
+    /**
+     * Gets the player's name
+     *
+     * @return      The name of the player
+     */
+    String getName();
+    
+    /**
+     * Handler for mouse movement
+     *
+     * @param   mouseX          X position of the mouse
+     * @param   mouseY          Y position of the mouse
+     * @param   game            Current state of the game
+     */
+    void mouseMoved(int mouseX, int mouseY, Game game);
+    
+    /**
+     * Handler for mouse click
+     *
+     * @param   mouseX          X position of the mouse
+     * @param   mouseY          Y position of the mouse
+     * @param   game            Current state of the game
+     */
+    void mouseClicked(int mouseX, int mouseY, Game game);
+}
+
+/**
+ * Player, but human.
+ */
+class HumanPlayer implements IPlayer {
+    int next_move = -1;
+    int current_pos = -1;
+    boolean display;
+    
+    Color chip_color;
+    String name;
+    
+    @Override
+    void init(Color chip_color, String name) {
         this.chip_color = chip_color;
         this.name = name;
+    }
+    
+    @Override
+    Color getColor() {
+        return chip_color;
+    }
+    
+    @Override
+    String getName() {
+        return name;
+    }
+    
+    @Override
+    void draw() {
+        if (this.display) {
+            fill(Color.ARROW.getColor());
+            int x = Constants.BOARD_MARGIN_X + (Constants.CHIP_SIZE + Constants.CHIP_SPACING) * current_pos + Constants.CHIP_SPACING;
+            triangle(x, Constants.BOARD_MARGIN_Y - 22, x + Constants.CHIP_SIZE, Constants.BOARD_MARGIN_Y - 22, x + Constants.CHIP_SIZE / 2, Constants.BOARD_MARGIN_Y - 2);
+        }
+    }
+    
+    @Override
+    int play(Board current_board) {
+        int result = next_move;
+        
+        if (next_move != -1) {
+            next_move = -1;
+            current_pos = -1;
+            display = false;
+        }
+        
+        return result;
+    }
+    
+    @Override
+    void mouseMoved(int mouseX, int mouseY, Game game) {
+        if (mouseX > Constants.BOARD_MARGIN_X && mouseX < Constants.BOARD_PIX_WIDTH + Constants.BOARD_MARGIN_X - Constants.CHIP_SPACING) {
+            this.current_pos = (int) (mouseX - Constants.BOARD_MARGIN_X) / (Constants.CHIP_SIZE + Constants.CHIP_SPACING);
+            
+            this.display = game.board.getAvaliableSpace(this.current_pos) != 0;
+            
+        } else {
+            this.display = false;
+        }
+    }
+    
+    @Override
+    void mouseClicked(int mouseX, int mouseY, Game game) {
+        if (game.board.getAvaliableSpace(this.current_pos) != 0) {
+            this.next_move = this.current_pos;
+        }
     }
 }
 
 /**
  * Represents a scene.
  */
-interface Scene {
+interface IScene {
     /**
      * Init the scene
      *
@@ -375,14 +416,14 @@ interface Scene {
  * Handle the differents scenes.
  */
 class SceneManager {
-    Scene current = null;
+    IScene current = null;
 
     /**
      * Constructor.
      *
      * @param   first       First scene to display.
      */
-    SceneManager(Scene first) {
+    SceneManager(IScene first) {
         current = first;
         current.init(this);
     }
@@ -392,7 +433,7 @@ class SceneManager {
      *
      * @param newScene      The nes scene to display.
      */
-    void swap(Scene newScene) {
+    void swap(IScene newScene) {
         if (current != null) {
             current.deinit(this);
         }
@@ -438,15 +479,16 @@ class SceneManager {
 /**
  * The game
  */
-class Game implements Scene {
+class Game implements IScene {
     Board board;
-    SelectArrow arrow;
     SceneManager sm;
+    
+    int last_mouse_x = 0, last_mouse_y = 0;
 
-    Player p1;
-    Player p2;
+    HumanPlayer p1;
+    HumanPlayer p2;
 
-    Player current;
+    IPlayer current;
     
     Game() {
         
@@ -464,9 +506,10 @@ class Game implements Scene {
     void init(SceneManager sm) {
         this.sm = sm;
         board = new Board();
-        arrow = new SelectArrow(board);
-        p1 = new Player(Color.CHIP1, "Rouge");
-        p2 = new Player(Color.CHIP2, "Jaune");
+        p1 = new HumanPlayer();
+        p1.init(Color.CHIP1, "Rouge");
+        p2 = new HumanPlayer();
+        p2.init(Color.CHIP2, "Jaune");
         current = p1;
         
         noStroke();
@@ -482,24 +525,44 @@ class Game implements Scene {
         background(Color.BACKGROUND.getColor());
 
         board.draw();
-        arrow.draw();
+        current.draw();
+        
+        int move = current.play(this.board);
+        
+        if (move != -1) {
+            int y = board.getAvaliableSpace(move) - 1;
+            
+            if (y != -1) {
+                board.chips_list[move][y] = new Chip(move, y, current);
+                
+                if (board.checkWin(move, y)) {
+                    this.sm.swap(new MainMenu("GGWP " + current.getName() + "!"));
+                    return;
+                }
+                
+                switchPlayer();
+                current.mouseMoved(this.last_mouse_x, this.last_mouse_y, this);
+            }
+        }
     }
     
     @Override
     void mouseMoved(int x, int y) {
-        arrow.mouseMoved(x);
+        last_mouse_x = x;
+        last_mouse_y = y;
+        current.mouseMoved(x, y, this);
     }
     
     @Override
     void mouseClicked(int x, int y) {
-        arrow.mouseClicked(y, this);
+        current.mouseClicked(x, y, this);
     }
 }
 
 /**
  * Main menu of the game.
  */
-class MainMenu implements Scene {
+class MainMenu implements IScene {
     SceneManager sm;
     boolean hover_play = false;
     String message = "";
