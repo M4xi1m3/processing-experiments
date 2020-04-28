@@ -6,6 +6,9 @@
  * @version 1.0.0
  */
 
+/**
+ * Stores constants used accross the game.
+ */
 class Constants {
     static final int BOARD_WIDTH  = 7;
     static final int BOARD_HEIGHT = 6;
@@ -25,6 +28,9 @@ class Constants {
     static final int BOARD_MARGIN_Y = (SCREEN_HEIGHT - BOARD_PIX_HEIGHT) / 2;
 }
 
+/**
+ * Stores different color used in the game.
+ */
 enum Color {
     BACKGROUND(0xFF000000),
     TEXT(0xFFFFFFFF),
@@ -41,18 +47,37 @@ enum Color {
     
     private int number = 0;
     
+    /**
+     * Creates a color
+     *
+     * @param number    The int value of the color, as ARGB.
+     */
     Color(int number) {
         this.number = number;
     }
     
+    /**
+     * Get the int value of a color
+     *
+     * @return      The value of the color.
+     */
     int getColor() {
         return this.number;
     }
 };
 
+/**
+ * Stores the board.
+ */
 class Board {
+    // List of the chips in the board.
     Chip[][] chips_list;
     
+    /**
+     * Init the board.
+     *
+     * We create the chips array and fill it with null.
+     */
     Board() {
         chips_list = new Chip[Constants.BOARD_WIDTH][Constants.BOARD_HEIGHT];
         
@@ -63,6 +88,13 @@ class Board {
         }
     }
     
+    /**
+     * Get the vertical space avalible a position x
+     *
+     * @param   x       The horizontal position to get avaliable space from
+     *
+     * @]return     Avaliable horizontal space at position x.
+     */
     int getAvaliableSpace(int x) {
         if (x >= 0 && x < chips_list.length) {
             Chip[] arr = chips_list[x];
@@ -75,6 +107,9 @@ class Board {
         }
     }
     
+    /**
+     * Draws the board.
+     */
     void draw() {
         fill(Color.BOARD.getColor());
         rect(Constants.BOARD_MARGIN_X, Constants.BOARD_MARGIN_Y, Constants.BOARD_PIX_WIDTH, Constants.BOARD_PIX_HEIGHT);
@@ -99,10 +134,32 @@ class Board {
         }
     }
     
+    /**
+     * Recusive function to check win at position (x;y)
+     *
+     *  @param  x       X position to start from
+     *  @param  y       Y position to start from
+     *
+     *  @return     Wether or not there is a win.
+     */
     boolean checkWin(int x, int y) {
         return this.checkWin(x, y, 0, 0, 0, null);
     }
     
+    /**
+     * Recusive function to check win.
+     *
+     * If dx == dy == 0, we go in all 8 directions.
+     *
+     * @param   x       X position to start from
+     * @param   y       Y position to start from
+     * @param   dx      Direction X to go
+     * @param   dy      Direction Y to go
+     * @param   count   Current number of alligned chips
+     * @param   owner   Owner to check from
+     *
+     * @return      Wether or not there is a win.
+     */
     boolean checkWin(int x, int y, int dx, int dy, int count, Player owner) {
         if (x < 0 || x >= chips_list.length) {
             return false;
@@ -155,17 +212,28 @@ class Board {
     }
 }
 
+/**
+ * Represents the select arrow overing over the board.
+ */
 class SelectArrow {
     int position;
     boolean display;
     Board board;
     
+    /**
+     * Init the arrow.
+     *
+     * @param   board       The board.
+     */
     SelectArrow(Board board) {
         this.position = 1;
         this.display = true;
         this.board = board;
     }
     
+    /**
+     * Draws the arrow
+     */
     void draw() {
         if (this.display) {
             fill(Color.ARROW.getColor());
@@ -174,6 +242,11 @@ class SelectArrow {
         }
     }
     
+    /**
+     * Method called when the mouse if moved.
+     *
+     * @param   mouseX      X position of the mouse.
+     */
     void mouseMoved(int mouseX) {
         if (mouseX > Constants.BOARD_MARGIN_X && mouseX < Constants.BOARD_PIX_WIDTH + Constants.BOARD_MARGIN_X - Constants.CHIP_SPACING) {
             this.display = true;
@@ -184,6 +257,12 @@ class SelectArrow {
         }
     }
     
+    /**
+     * Method called when the mouse is clicked.
+     *
+     * @param   mouseX      X position of the mouse.
+     * @param   game        Game object.
+     */
     void mouseClicked(int mouseX, Game game) {
         if (this.display) {
             int y = board.getAvaliableSpace(this.position);
@@ -201,16 +280,29 @@ class SelectArrow {
     }
 }
 
+/**
+ * Represent a chip.
+ */
 class Chip {
     int x, y;
     Player owner;
 
+    /**
+     * Inits the chip.
+     *
+     * @param   x       X position
+     * @param   y       Y position
+     * @param   owner   Owner of the chip
+     */
     Chip(int x, int y, Player owner) {
         this.x = x;
         this.y = y;
         this.owner = owner;
     }
     
+    /**
+     * Draws the chip.
+     */
     void draw() {
         int i = Constants.BOARD_MARGIN_X + (Constants.CHIP_SIZE + Constants.CHIP_SPACING) * (this.x + 1) - Constants.CHIP_SIZE/2;
         int j = Constants.BOARD_MARGIN_Y + (Constants.CHIP_SIZE + Constants.CHIP_SPACING) * (this.y + 1) - Constants.CHIP_SIZE/2;
@@ -220,32 +312,86 @@ class Chip {
     }
 }
 
+/**
+ * Represents a player
+ */
 class Player {
     Color chip_color;
     String name;
     
+    /**
+     * Init the player.
+     *
+     * @param   chip_color  Color of the player
+     * @param   name        Name of the player
+     */
     Player(Color chip_color, String name) {
         this.chip_color = chip_color;
         this.name = name;
     }
 }
 
+/**
+ * Represents a scene.
+ */
 interface Scene {
+    /**
+     * Init the scene
+     *
+     * @param   sm      The scene manager
+     */
     void init(SceneManager sm);
+    
+    /**
+     * Un-init the scene
+     *
+     * @param   sm      The scene manager
+     */
     void deinit(SceneManager sm);
+    
+    /**
+     * Draws the scene
+     */
     void draw();
+    
+    /**
+     * Handle mouse moved on the scene
+     *
+     * @param   x       Mouse X position
+     * @param   y       Mouse Y position
+     */
     void mouseMoved(int x, int y);
+    
+    /**
+     * Handle mouse clicks on the scene
+     *
+     * @param   x       Mouse X position
+     * @param   y       Mouse Y position
+     */
     void mouseClicked(int x, int y);
 }
 
+/**
+ * Handle the differents scenes.
+ */
 class SceneManager {
     Scene current = null;
 
+    /**
+     * Constructor.
+     *
+     * @param   first       First scene to display.
+     */
     SceneManager(Scene first) {
         current = first;
         current.init(this);
     }
     
+    /**
+     * Un-init the current scene, init the newScene, and set it as current
+     *
+     * @param newScene      The nes scene to display.
+     */
     void swap(Scene newScene) {
         if (current != null) {
             current.deinit(this);
@@ -255,18 +401,33 @@ class SceneManager {
         current.init(this);
     }
     
+    /**
+     * Drwas the current scene.
+     */
     void draw() {
         if (current != null) {
             current.draw();
         }
     }
     
+    /**
+     * Handle mouse moving.
+     *
+     * @param   x       Mouse X position
+     * @param   y       Mouse Y position
+     */
     void mouseMoved(int x, int y) {
         if (current != null) {
             current.mouseMoved(x, y);
         }
     }
     
+    /**
+     * Handle mouse clicking.
+     *
+     * @param   x       Mouse X position
+     * @param   y       Mouse Y position
+     */
     void mouseClicked(int x, int y) {
         if (current != null) {
             current.mouseClicked(x, y);
@@ -274,6 +435,9 @@ class SceneManager {
     }
 }
 
+/**
+ * The game
+ */
 class Game implements Scene {
     Board board;
     SelectArrow arrow;
@@ -332,6 +496,9 @@ class Game implements Scene {
     }
 }
 
+/**
+ * Main menu of the game.
+ */
 class MainMenu implements Scene {
     SceneManager sm;
     boolean hover_play = false;
