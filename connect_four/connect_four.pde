@@ -160,7 +160,7 @@ class Board {
      *  @return     Wether or not there is a win.
      */
     boolean checkWin(int x, int y) {
-        return this.checkWin(x, y, 0, 0, 0, null);
+        return this.checkWin(x, y, 0, 0, 0, null) >= Constants.CONNECT_NUMBER;
     }
     
     /**
@@ -177,53 +177,44 @@ class Board {
      *
      * @return      Wether or not there is a win.
      */
-    boolean checkWin(int x, int y, int dx, int dy, int count, IPlayer owner) {
+    int checkWin(int x, int y, int dx, int dy, int count, IPlayer owner) {
         if (x < 0 || x >= chips_list.length) {
-            return false;
+            return count;
         } else {
             if (y < 0 || y >= chips_list[x].length) {
-                return false;
+                return count;
             }
-        }
-        
-        if (count == Constants.CONNECT_NUMBER - 1) {
-            return true;
         }
         
         Chip c = chips_list[x][y];
         if (c == null) {
-            return false;
+            return count;
         }
         
         if (dx == 0 && dy == 0) {
-            boolean isWon = false;
+            int alignX = checkWin(x, y, -1, 0, 0, c.owner) + checkWin(x, y, 1, 0, 0, c.owner) + 1;
+            int alignY = checkWin(x, y, 0, -1, 0, c.owner) + checkWin(x, y, 0, 1, 0, c.owner) + 1;
+            int alignXX = checkWin(x, y, -1, -1, 0, c.owner) + checkWin(x, y, 1, 1, 0, c.owner) + 1;
+            int alignYY = checkWin(x, y, 1, -1, 0, c.owner) + checkWin(x, y, -1, 1, 0, c.owner) + 1;
             
-            for(int i = -1; i <= 1; i++) {
-                for(int j = -1; j <= 1; j++) {
-                    if (i == 0 && j == 0)
-                        continue;
-                    isWon |= checkWin(x, y, i, j, 0, c.owner);
-                }
-            }
-            
-            return isWon;
+            return max(alignX, alignY, max(alignXX, alignYY));
         } else {
             if (x + dx < 0 || x + dx >= chips_list.length) {
-                return false;
+                return count;
             } else {
                 if (y + dy < 0 || y + dy >= chips_list[x].length) {
-                    return false;
+                    return count;
                 }
             }
             
             Chip c1 = chips_list[x + dx][y + dy];
             
-            if (c1 == null) return false;
+            if (c1 == null) return count;
             
             if (owner == c1.owner) {
                 return checkWin(x + dx, y + dy, dx, dy, count + 1, owner);
             } else {
-                return false;
+                return count;
             }
         }
     }
@@ -552,9 +543,12 @@ class Game implements IScene {
     SceneManager sm;
     
     int last_mouse_x = 0, last_mouse_y = 0;
+    boolean isWin = false;
+    boolean isEquality = false;
+    boolean hover_exit = false;
 
-    HumanPlayer p1;
-    RandomPlayer p2;
+    IPlayer p1;
+    IPlayer p2;
 
     IPlayer current;
     
@@ -591,34 +585,59 @@ class Game implements IScene {
     @Override
     void draw() {
         background(Color.BACKGROUND.getColor());
-
-        board.draw();
-        current.draw();
         
         textAlign(CENTER);
         fill(Color.TEXT.getColor());
         text(current.getName() + " is playing...", Constants.SCREEN_WIDTH/2, 50);
         
-        int move = current.play(this.board);
-        
-        if (move != -1) {
-            int y = board.getAvaliableSpace(move) - 1;
-            
-            if (y != -1) {
-                board.chips_list[move][y] = new Chip(move, y, current);
-                
-                if (board.checkWin(move, y)) {
-                    this.sm.swap(new MainMenu("GGWP " + current.getName() + "!"));
-                    return;
-                }
-                
-                switchPlayer();
-                current.mouseMoved(this.last_mouse_x, this.last_mouse_y, this);
+        if (isWin) {
+            if (isEquality) {
+                text("EQUALITY!11!1!", Constants.SCREEN_WIDTH/2, 100);
+            } else {
+                text("GGWP " + current.getName() + "!", Constants.SCREEN_WIDTH/2, 100);
             }
         }
         
-        if (board.isFull()) {
-            this.sm.swap(new MainMenu("EQUALITY!11!1!"));
+        if (!isWin) {
+            int move = current.play(this.board);
+            if (move != -1) {
+                int y = board.getAvaliableSpace(move) - 1;
+                
+                if (y != -1) {
+                    board.chips_list[move][y] = new Chip(move, y, current);
+                    
+                    if (board.checkWin(move, y)) {
+                        isWin = true;
+                        isEquality = false;
+                        return;
+                    }
+                    
+                    switchPlayer();
+                    current.mouseMoved(this.last_mouse_x, this.last_mouse_y, this);
+                }
+            }
+            
+            if (board.isFull()) {
+                isWin = true;
+                isEquality = true;
+            }
+        }
+
+        board.draw();
+        current.draw();
+        
+        if (isWin) {
+            if (hover_exit) {
+                fill(Color.BUTTON_HOVER_BG.getColor());
+                rect(Constants.SCREEN_WIDTH/2 - 50, Constants.SCREEN_HEIGHT - 60 - 20, 100, 40);
+                fill(Color.BUTTON_HOVER_FG.getColor());
+                text("Exit", Constants.SCREEN_WIDTH/2, Constants.SCREEN_HEIGHT - 60 + 10);
+            } else {
+                fill(Color.BUTTON_BG.getColor());
+                rect(Constants.SCREEN_WIDTH/2 - 50, Constants.SCREEN_HEIGHT - 60 - 20, 100, 40);
+                fill(Color.BUTTON_FG.getColor());
+                text("Exit", Constants.SCREEN_WIDTH/2, Constants.SCREEN_HEIGHT - 60 + 10);
+            }
         }
     }
     
@@ -626,12 +645,28 @@ class Game implements IScene {
     void mouseMoved(int x, int y) {
         last_mouse_x = x;
         last_mouse_y = y;
-        current.mouseMoved(x, y, this);
+        
+        if (isWin) {
+            hover_exit = x >= Constants.SCREEN_WIDTH/2 - 50  && x <= Constants.SCREEN_WIDTH/2 + 50 &&
+                         y >= Constants.SCREEN_HEIGHT - 60 - 20 && y <= Constants.SCREEN_HEIGHT - 60 + 20;
+        } else {
+            current.mouseMoved(x, y, this);
+        }
     }
     
     @Override
     void mouseClicked(int x, int y) {
-        current.mouseClicked(x, y, this);
+        if (!isWin) {
+            current.mouseClicked(x, y, this);
+        }
+        
+        if (hover_exit && isWin) {
+            if (isEquality) {
+                this.sm.swap(new MainMenu("EQUALITY!11!1!"));
+            } else {
+                this.sm.swap(new MainMenu("GGWP " + current.getName() + "!"));
+            }
+        }
     }
 }
 
